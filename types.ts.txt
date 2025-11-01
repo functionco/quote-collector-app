@@ -1,0 +1,67 @@
+// This global declaration tells TypeScript that `window.gapi` will exist at runtime,
+// even though it's loaded from an external script. This prevents "cannot find name 'gapi'" errors.
+declare global {
+  interface Window {
+    gapi: any;
+  }
+}
+
+export interface GoogleUser {
+  name: string;
+  email: string;
+  imageUrl: string;
+}
+
+export enum Source {
+  DRIVE = 'DRIVE',
+  GMAIL = 'GMAIL',
+}
+
+export interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
+  webViewLink: string;
+}
+
+export interface GmailAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface GmailMessage {
+  id: string;
+  snippet: string;
+  subject: string;
+  date: string;
+  from: string;
+  attachments: GmailAttachment[];
+}
+
+export type ScanResult = (
+  | { type: Source.DRIVE; data: DriveFile }
+  | { type: Source.GMAIL; data: GmailMessage }
+) & { analysisState: 'idle' | 'loading' | 'done' | 'error'; error?: string };
+
+export interface QuoteItem {
+  itemName: string;
+  description: string;
+  quantity: number | null;
+  unitPrice: number | null;
+  totalPrice: number | null;
+}
+
+export interface DatabaseEntry {
+  id: string;
+  sourceFile: {
+    id: string;
+    name: string;
+    type: Source;
+    link: string;
+  };
+  quoteItems: QuoteItem[];
+  addedDate: string;
+}

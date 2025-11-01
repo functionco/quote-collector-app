@@ -1,0 +1,5 @@
+{
+  "name": "Quote Collector",
+  "description": "An application to scan Google Drive and Gmail for files containing 'quote', use Gemini to extract structured data from them, and organize the information into a central database.",
+  "requestFramePermissions": []
+}

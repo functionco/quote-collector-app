@@ -1,0 +1,84 @@
+/// <reference types="vite/client" />
+
+import { GoogleGenAI, Type } from "@google/genai";
+import { QuoteItem } from "../types";
+
+const getAiClient = (() => {
+  let ai: GoogleGenAI | null = null;
+  return () => {
+    if (!ai) {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Gemini API Key (VITE_GEMINI_API_KEY) is not configured as an environment variable.");
+      }
+      ai = new GoogleGenAI({ apiKey });
+    }
+    return ai;
+  };
+})();
+
+export const extractQuoteData = async (fileData: {mimeType: string, data: string}): Promise<QuoteItem[]> => {
+  try {
+    const ai = getAiClient();
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                {
+                    inlineData: {
+                        mimeType: fileData.mimeType,
+                        data: fileData.data
+                    }
+                },
+                {
+                    text: "Analyze this document. It is a quote, proposal, or invoice. Extract all distinct line items. For each item, provide the item name or service, a brief description, quantity, unit price, and total price."
+                }
+            ]
+        },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                description: "A list of all line items from the quote.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        itemName: {
+                            type: Type.STRING,
+                            description: "The name of the item or service."
+                        },
+                        description: {
+                            type: Type.STRING,
+                            description: "A brief description of the item or service."
+                        },
+                        quantity: {
+                            type: Type.NUMBER,
+                            description: "The quantity of the item. Use null if not specified."
+                        },
+                        unitPrice: {
+                            type: Type.NUMBER,
+                            description: "The price per unit. Use null if not specified."
+                        },
+                        totalPrice: {
+                            type: Type.NUMBER,
+                            description: "The total price for the line item. Use null if not specified."
+                        }
+                    },
+                    required: ["itemName", "description", "totalPrice"]
+                }
+            }
+        }
+    });
+
+    const jsonText = response.text.trim();
+    const parsedData = JSON.parse(jsonText);
+    return parsedData as QuoteItem[];
+
+  } catch (error) {
+    console.error("Error analyzing quote with Gemini:", error);
+    if (error instanceof Error && error.message.includes("API Key")) {
+        throw error;
+    }
+    throw new Error("Failed to analyze the document. The AI model could not process the content.");
+  }
+};
